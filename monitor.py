@@ -1,82 +1,147 @@
+"""
+سكربت مراقبة مواعيد الحجز - يعمل على GitHub Actions
+"""
 import time
 import logging
 import os
+import sys
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import requests
 
+# ===================== إعدادات المستخدم =====================
 TARGET_URL = "https://adhahi.dz/register"
-AVAILABILITY_KEYWORDS = ["حجز", "حاليًا", "حجز غير متوفر"]
+INPUT_ELEMENT_ID = "reg-wilaya"
+AVAILABILITY_KEYWORDS = ["متاح", "حاليًا", "حجز غير متوفر", "حجز"]
+EXTRA_WAIT = 3  # وقت قصير
+# ============================================================
 
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_TOKEN', '8751693358:AAE4vABzUA3GxNCi7G23u8M4Aj62gU1JqOc')
 TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '8624250308')
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
-def send_telegram_message(message):
+def send_telegram_message(message: str) -> bool:
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        logger.warning("⚠️ لم يتم تعيين توكن التليجرام")
+        return False
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-        response = requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": message})
-        return True
-    except:
+        payload = {
+            "chat_id": TELEGRAM_CHAT_ID,
+            "text": message,
+            "parse_mode": "HTML"
+        }
+        response = requests.post(url, json=payload, timeout=10)
+        if response.status_code == 200:
+            logger.info("✅ تم إرسال الإشعار إلى Telegram")
+            return True
+        else:
+            logger.error(f"❌ فشل الإرسال: {response.text}")
+            return False
+    except Exception as e:
+        logger.error(f"⚠️ خطأ في الاتصال: {e}")
         return False
 
-def check_availability():
+def check_availability() -> bool:
     driver = None
     try:
         chrome_options = Options()
         chrome_options.add_argument("--headless=new")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
-        chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        chrome_options.add_experimental_option('useAutomationExtension', False)
+        chrome_options.add_argument("--window-size=1920,1080")
         
-        service = Service("/usr/local/bin/chromedriver")
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        driver = webdriver.Chrome(options=chrome_options)
         
-        driver.set_page_load_timeout(90)
+        logger.info(f"🚀 فتح الموقع: {TARGET_URL}")
         driver.get(TARGET_URL)
-        time.sleep(5)
         
-        wilaya_input = WebDriverWait(driver, 30).until(
-            EC.element_to_be_clickable((By.ID, "reg-wilaya"))
+        WebDriverWait(driver, 15).until(
+            EC.presence_of_element_located((By.TAG_NAME, "body"))
         )
         
-        driver.execute_script("arguments[0].scrollIntoView(true);", wilaya_input)
-        time.sleep(1)
-        driver.execute_script("arguments[0].click();", wilaya_input)
+        logger.info("📜 التمرير لأسفل الصفحة...")
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(2)
         
-        items = driver.find_elements(By.CSS_SELECTOR, "li[role='option']")
+        logger.info(f"🔍 البحث عن الحقل id='{INPUT_ELEMENT_ID}'")
+        input_field = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, INPUT_ELEMENT_ID))
+        )
         
-        available = []
+        input_field.click()
+        logger.info("🖱️ تم النقر على الحقل - انتظار ظهور القائمة...")
+        time.sleep(EXTRA_WAIT)
+        
+        listbox = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "ul[role='listbox']"))
+        )
+        
+        items = listbox.find_elements(By.CSS_SELECTOR, "li[role='option']")
+        
+        if not items:
+            logger.warning("⚠️ لم يتم العثور على عناصر في القائمة")
+            return False
+        
+        logger.info(f"📋 تم العثور على {len(items)} ولاية")
+        
+        available_items = []
         for item in items:
-            text = item.text
-            if any(k in text for k in AVAILABILITY_KEYWORDS) :
-                available.append(text)
+            text = item.text.strip()
+            for keyword in AVAILABILITY_KEYWORDS:
+                if keyword in text:
+                    available_items.append(text)
+                    logger.info(f"   ✅ {text}")
+                    break
         
-        if available:
-            send_telegram_message("✅ المواعيد المتاحة:\n" + "\n".join(available))
+        if available_items:
+            logger.info(f"🎉 تم العثور على {len(available_items)} ولاية بها مواعيد!")
             return True
-        return False
+        else:
+            logger.info("❌ لا توجد مواعيد متاحة حالياً")
+            return False
         
+    except TimeoutException:
+        logger.error("⏰ انتهى الوقت")
+        return False
+    except NoSuchElementException as e:
+        logger.error(f"🔍 لم يتم العثور على العنصر: {e}")
+        return False
     except Exception as e:
-        logger.error(f"خطأ: {e}")
+        logger.error(f"⚠️ خطأ: {e}")
         return False
     finally:
         if driver:
             driver.quit()
+            logger.info("🛑 تم إغلاق المتصفح")
 
 def main():
-    logger.info("بدء الفحص...")
-    check_availability()
+    logger.info("=" * 50)
+    logger.info("بدء فحص المواعيد...")
+    
+    is_available = check_availability()
+    
+    if is_available:
+        message = (
+            f"✅ <b>تم العثور على موعد متاح!</b>\n\n"
+            f"الموقع: {TARGET_URL}\n"
+            f"⏰ الوقت: {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+            f"🔗 يرجى الدخول سريعاً للحجز."
+        )
+        send_telegram_message(message)
+    else:
+        logger.info("لا توجد مواعيد متاحة")
+    
+    logger.info("=" * 50)
 
 if __name__ == "__main__":
     main()
