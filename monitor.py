@@ -28,8 +28,8 @@ EXTRA_WAIT = 20
 # ========================================================================
 
 # قراءة التوكن من متغيرات البيئة (للسيرفر)
-TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_TOKEN', '')
-TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '')
+TELEGRAM_BOT_TOKEN = os.environ.get('8751693358:AAE4vABzUA3GxNCi7G23u8M4Aj62gU1JqOc', '')
+TELEGRAM_CHAT_ID = os.environ.get('8624250308', '')
 
 logging.basicConfig(
     level=logging.INFO,
