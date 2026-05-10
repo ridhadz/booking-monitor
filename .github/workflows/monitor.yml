@@ -1,4 +1,4 @@
-name: مراقبة مواعيد الحجز - FlareSolverr
+name: مراقبة مواعيد الحجز - Playwright
 
 on:
   schedule:
@@ -19,15 +19,12 @@ jobs:
       with:
         python-version: '3.11'
     
-    - name: تشغيل FlareSolverr
+    - name: تثبيت Playwright والمتصفحات
       run: |
-        docker run -d --name flaresolverr -p 8191:8191 ghcr.io/flaresolverr/flaresolverr:latest
-        echo "⏳ انتظار تشغيل FlareSolverr..."
-        sleep 15
-        echo "✅ FlareSolverr يعمل"
-        docker ps | grep flaresolverr
+        pip install playwright
+        playwright install --with-deps chromium
     
-    - name: تثبيت المتطلبات
+    - name: تثبيت المتطلبات الأخرى
       run: pip install -r requirements.txt
     
     - name: تشغيل سكربت المراقبة
@@ -35,9 +32,3 @@ jobs:
         TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       run: python monitor.py
-    
-    - name: تنظيف - إيقاف FlareSolverr
-      if: always()
-      run: |
-        docker stop flaresolverr || true
-        docker rm flaresolverr || true
