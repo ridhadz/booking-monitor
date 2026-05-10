@@ -21,7 +21,7 @@ TARGET_URL = "https://adhahi.dz/register"
 INPUT_ELEMENT_ID = "reg-wilaya"
 
 # الكلمات التي تدل على وجود موعد متاح
-AVAILABILITY_KEYWORDS = ["متاح", "موجود", "غير متوفر", "حاليًا"]
+AVAILABILITY_KEYWORDS = ["حجز", "غير موجود", "غير متوفر", "حاليًا"]
 
 # وقت انتظار إضافي (بالثواني)
 EXTRA_WAIT = 20
