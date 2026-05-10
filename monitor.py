@@ -3,14 +3,13 @@ import logging
 import os
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 import requests
 
 # ========== إعداداتك ==========
-TARGET_URL = "https://adhahi.dz/register"  # ⚠️ ضع الرابط الصحيح هنا
-AVAILABILITY_KEYWORDS = ["متاح", "حاليًا", "حجز غير متوفر"]
+TARGET_URL = "https://adhahi.dz/register"  # ⚠️ غير هذا بالرابط الحقيقي
+AVAILABILITY_KEYWORDS = ["حجز", "حاليًا", "حجز غير متوفر"]
 # ================================
 
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_TOKEN', '8751693358:AAE4vABzUA3GxNCi7G23u8M4Aj62gU1JqOc')
@@ -26,72 +25,60 @@ def send_telegram_message(message):
         if response.status_code == 200:
             logger.info("✅ تم إرسال الإشعار")
             return True
-        else:
-            logger.error(f"❌ فشل الإرسال: {response.text}")
-            return False
+        return False
     except Exception as e:
-        logger.error(f"⚠️ خطأ: {e}")
+        logger.error(f"⚠️ خطأ في الإرسال: {e}")
         return False
 
 def check_availability():
     driver = None
     try:
-        logger.info("1️⃣ جاري إعداد المتصفح...")
+        logger.info("🚀 جاري تشغيل Chrome...")
         chrome_options = Options()
         chrome_options.add_argument("--headless=new")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--disable-gpu")
         
-        logger.info("2️⃣ جاري تشغيل Chrome...")
-        driver = webdriver.Chrome(options=chrome_options)
+        # استخدام ChromeDriver المثبت مسبقاً
+        service = Service("/usr/local/bin/chromedriver")
+        driver = webdriver.Chrome(service=service, options=chrome_options)
         
-        logger.info(f"3️⃣ جاري فتح الموقع: {TARGET_URL}")
+        logger.info(f"🌐 فتح الموقع: {TARGET_URL}")
         driver.get(TARGET_URL)
-        
-        logger.info("4️⃣ انتظار تحميل الصفحة...")
         time.sleep(5)
         
-        logger.info("5️⃣ جاري أخذ لقطة للصفحة للتحقق...")
+        # قراءة نص الصفحة
         page_text = driver.find_element(By.TAG_NAME, "body").text
-        logger.info(f"6️⃣ أول 500 حرف من الصفحة: {page_text[:500]}")
+        logger.info(f"📄 تم تحميل الصفحة، طول النص: {len(page_text)} حرف")
         
-        # البحث عن كلمات المفتاح
-        found = False
+        # البحث عن الكلمات المطلوبة
         for keyword in AVAILABILITY_KEYWORDS:
             if keyword in page_text:
-                logger.info(f"✅ تم العثور على كلمة '{keyword}' في الصفحة!")
-                found = True
-                break
+                logger.info(f"✅ تم العثور على '{keyword}'!")
+                return True
         
-        if not found:
-            logger.info("❌ لم يتم العثور على أي كلمة تدل على التوفر")
-        
-        return found
+        logger.info("❌ لم يتم العثور على مواعيد متاحة")
+        return False
         
     except Exception as e:
-        logger.error(f"⚠️ خطأ مفصل: {type(e).__name__} - {str(e)}")
+        logger.error(f"⚠️ خطأ: {e}")
         return False
     finally:
         if driver:
-            logger.info("7️⃣ جاري إغلاق المتصفح...")
             driver.quit()
-            logger.info("8️⃣ تم الإغلاق بنجاح")
+            logger.info("🔒 تم إغلاق المتصفح")
 
 def main():
     logger.info("=" * 50)
     logger.info("بدء فحص المواعيد...")
     
-    # إرسال إشعار بدء التشغيل (للتأكد من أن البوت يعمل)
-    send_telegram_message("🟢 سكربت المراقبة يعمل الآن! جاري فحص المواعيد...")
+    # إشعار بدء التشغيل (مرة واحدة فقط)
+    if time.strftime('%H') == '18':  # في الساعة 18 فقط
+        send_telegram_message("🟢 سكربت المراقبة يعمل الآن")
     
-    is_available = check_availability()
-    
-    if is_available:
-        message = f"✅ <b>تم العثور على موعد متاح!</b>\n\nالموقع: {TARGET_URL}\n⏰ {time.strftime('%Y-%m-%d %H:%M:%S')}"
-        send_telegram_message(message)
-    else:
-        logger.info("لا توجد مواعيد متاحة حالياً")
+    if check_availability():
+        send_telegram_message(f"✅ <b>تم العثور على موعد متاح!</b>\n\n{time.strftime('%Y-%m-%d %H:%M:%S')}")
     
     logger.info("=" * 50)
 
