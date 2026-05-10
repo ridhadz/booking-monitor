@@ -1,4 +1,4 @@
-name: مراقبة مواعيد الحجز - Playwright
+name: مراقبة مواعيد الحجز - Patchright
 
 on:
   schedule:
@@ -11,23 +11,23 @@ jobs:
     timeout-minutes: 15
     
     steps:
-    - name: استنساخ الكود
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
     
     - name: تثبيت Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
     
-    - name: تثبيت Playwright والمتصفحات
+    - name: تثبيت Patchright والمتصفح
       run: |
-        pip install playwright
-        playwright install --with-deps chromium
+        pip install patchright
+        # هذا الأمر هو ما شرحته سابقًا - يقوم بتثبيت متصفح مخصص معدل
+        patchright install chromium
     
     - name: تثبيت المتطلبات الأخرى
       run: pip install -r requirements.txt
     
-    - name: تشغيل سكربت المراقبة
+    - name: تشغيل السكربت
       env:
         TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
