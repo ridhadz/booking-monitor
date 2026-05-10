@@ -10,7 +10,7 @@ import requests
 
 # ========== إعداداتك ==========
 TARGET_URL = "https://adhahi.dz/register"  # ⚠️ ضع الرابط الصحيح هنا
-AVAILABILITY_KEYWORDS = ["متاح", "موجود", "حجز متوفر"]
+AVAILABILITY_KEYWORDS = ["متاح", "حاليًا", "حجز غير متوفر"]
 # ================================
 
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_TOKEN', '8751693358:AAE4vABzUA3GxNCi7G23u8M4Aj62gU1JqOc')
