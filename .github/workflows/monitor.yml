@@ -11,7 +11,7 @@ on:
 jobs:
   monitor:
     runs-on: ubuntu-latest
-    timeout-minutes: 15  # مهلة 15 دقيقة كحد أقصى
+    timeout-minutes: 15
     
     steps:
     - name: استنساخ الكود
@@ -30,8 +30,8 @@ jobs:
     - name: الاتصال بشبكة ZeroTier VPN
       uses: zerotier/github-action@v1
       with:
-        network-id: ${{ secrets.ZEROTIER_NETWORK_ID }}
-        auth-token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
+        network_id: ${{ secrets.ZEROTIER_NETWORK_ID }}
+        auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
     
     - name: انتظار اتصال VPN
       run: sleep 15
