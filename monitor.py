@@ -61,69 +61,55 @@ def check_availability() -> bool:
         chrome_options.add_argument("--window-size=1920,1080")
         
         driver = webdriver.Chrome(options=chrome_options)
+        driver.set_page_load_timeout(300)  # 5 دقائق مهلة التحميل
         
         logger.info(f"🚀 فتح الموقع: {TARGET_URL}")
         driver.get(TARGET_URL)
         
-        WebDriverWait(driver, 15).until(
+        # زيادة المهلات
+        WebDriverWait(driver, 60).until(
             EC.presence_of_element_located((By.TAG_NAME, "body"))
         )
         
-        logger.info("📜 التمرير لأسفل الصفحة...")
+        logger.info("📜 التمرير لأسفل...")
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(2)
+        time.sleep(5)
         
-        logger.info(f"🔍 البحث عن الحقل id='{INPUT_ELEMENT_ID}'")
-        input_field = WebDriverWait(driver, 10).until(
+        logger.info(f"🔍 البحث عن id='{INPUT_ELEMENT_ID}'")
+        input_field = WebDriverWait(driver, 30).until(
             EC.presence_of_element_located((By.ID, INPUT_ELEMENT_ID))
         )
         
         input_field.click()
-        logger.info("🖱️ تم النقر على الحقل - انتظار ظهور القائمة...")
-        time.sleep(EXTRA_WAIT)
+        logger.info("🖱️ تم النقر")
+        time.sleep(5)
         
-        listbox = WebDriverWait(driver, 10).until(
+        listbox = WebDriverWait(driver, 30).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "ul[role='listbox']"))
         )
         
         items = listbox.find_elements(By.CSS_SELECTOR, "li[role='option']")
         
         if not items:
-            logger.warning("⚠️ لم يتم العثور على عناصر في القائمة")
+            logger.warning("⚠️ لا توجد عناصر")
             return False
         
         logger.info(f"📋 تم العثور على {len(items)} ولاية")
         
-        available_items = []
         for item in items:
             text = item.text.strip()
-            for keyword in AVAILABILITY_KEYWORDS:
-                if keyword in text:
-                    available_items.append(text)
-                    logger.info(f"   ✅ {text}")
-                    break
+            if "غير متوفر" in text:
+                logger.info(f"✅ وجد: {text}")
+                return True
         
-        if available_items:
-            logger.info(f"🎉 تم العثور على {len(available_items)} ولاية بها مواعيد!")
-            return True
-        else:
-            logger.info("❌ لا توجد مواعيد متاحة حالياً")
-            return False
+        return False
         
     except TimeoutException:
-        logger.error("⏰ انتهى الوقت")
-        return False
-    except NoSuchElementException as e:
-        logger.error(f"🔍 لم يتم العثور على العنصر: {e}")
-        return False
-    except Exception as e:
-        logger.error(f"⚠️ خطأ: {e}")
+        logger.error("⏰ انتهت المهلة")
         return False
     finally:
         if driver:
             driver.quit()
-            logger.info("🛑 تم إغلاق المتصفح")
-
 def main():
     logger.info("=" * 50)
     logger.info("بدء فحص المواعيد...")
