@@ -21,7 +21,7 @@ TARGET_URL = "https://adhahi.dz/register"
 INPUT_ELEMENT_ID = "reg-wilaya"
 
 # الكلمات التي تدل على وجود موعد متاح
-AVAILABILITY_KEYWORDS = ["متاح", "موجود", "حجز متوفر", "متاحة"]
+AVAILABILITY_KEYWORDS = ["متاح", "موجود", "غير متوفر", "حاليًا"]
 
 # وقت انتظار إضافي (بالثواني)
 EXTRA_WAIT = 20
@@ -119,7 +119,7 @@ def check_availability() -> bool:
         for item in items:
             text = item.text.strip()
             for keyword in AVAILABILITY_KEYWORDS:
-                if keyword in text and "غير متوفر" not in text:
+                if keyword in text :
                     available_items.append(text)
                     logger.info(f"   ✅ تم العثور على: {text}")
                     break
