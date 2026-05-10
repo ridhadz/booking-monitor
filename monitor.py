@@ -20,8 +20,8 @@ AVAILABILITY_KEYWORDS = ["متاح", "حاليًا", "حجز غير متوفر",
 EXTRA_WAIT = 3  # وقت قصير
 # ============================================================
 
-TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_TOKEN', '8751693358:AAE4vABzUA3GxNCi7G23u8M4Aj62gU1JqOc')
-TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '8624250308')
+TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_TOKEN', '')
+TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '')
 
 logging.basicConfig(
     level=logging.INFO,
