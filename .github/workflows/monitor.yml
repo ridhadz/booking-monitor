@@ -1,7 +1,7 @@
-name: مراقبة مواعيد الحجز - Debug
+name: مراقبة مواعيد الحجز - بدون Debug
 
 on:
-  workflow_dispatch:  # تشغيل يدوي فقط
+  workflow_dispatch:
 
 jobs:
   monitor:
@@ -13,7 +13,7 @@ jobs:
     - name: تثبيت Chrome
       run: |
         sudo apt-get update
-        sudo apt-get install -y chromium-browser chromium-chromedriver
+        sudo apt-get install -y chromium-browser
     
     - name: الاتصال بـ ZeroTier VPN
       uses: zerotier/github-action@v1
@@ -21,17 +21,14 @@ jobs:
         network_id: ${{ secrets.ZEROTIER_NETWORK_ID }}
         auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
     
-    - name: انتظار VPN والتحقق من IP
-      run: |
-        sleep 20
-        echo "IP الحالي:"
-        curl ifconfig.me
+    - name: انتظار VPN
+      run: sleep 20
     
-    - name: بدء جلسة تصحيح (Debug)
-      if: always()  # سيفتح الجلسة حتى لو نجح
-      uses: mxschmitt/action-tmate@v3
-      with:
-        limit-access-to-actor: true
+    - name: التحقق من IP
+      run: curl ifconfig.me
+    
+    - name: اختبار اتصال الموقع
+      run: curl -I https://adhahi.dz/register || echo "فشل الاتصال"
     
     - name: تثبيت المتطلبات
       run: pip install -r requirements.txt
