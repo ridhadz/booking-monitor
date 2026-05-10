@@ -2,10 +2,7 @@ name: مراقبة مواعيد الحجز - FlareSolverr
 
 on:
   schedule:
-    # تشغيل كل 30 دقيقة
     - cron: '*/30 * * * *'
-  
-  # تشغيل يدوي من واجهة GitHub
   workflow_dispatch:
 
 jobs:
@@ -22,19 +19,13 @@ jobs:
       with:
         python-version: '3.11'
     
-    - name: تثبيت Docker
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y docker.io
-        sudo systemctl start docker
-        sudo systemctl enable docker
-    
     - name: تشغيل FlareSolverr
       run: |
-        sudo docker run -d --name flaresolverr -p 8191:8191 --restart=unless-stopped ghcr.io/flaresolverr/flaresolverr:latest
+        docker run -d --name flaresolverr -p 8191:8191 ghcr.io/flaresolverr/flaresolverr:latest
         echo "⏳ انتظار تشغيل FlareSolverr..."
         sleep 15
         echo "✅ FlareSolverr يعمل"
+        docker ps | grep flaresolverr
     
     - name: تثبيت المتطلبات
       run: pip install -r requirements.txt
@@ -48,5 +39,5 @@ jobs:
     - name: تنظيف - إيقاف FlareSolverr
       if: always()
       run: |
-        sudo docker stop flaresolverr || true
-        sudo docker rm flaresolverr || true
+        docker stop flaresolverr || true
+        docker rm flaresolverr || true
