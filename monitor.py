@@ -9,10 +9,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import requests
 
-# ========== إعداداتك ==========
 TARGET_URL = "https://adhahi.dz/register"
 AVAILABILITY_KEYWORDS = ["حجز", "حاليًا", "حجز غير متوفر"]
-# ================================
 
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_TOKEN', '8751693358:AAE4vABzUA3GxNCi7G23u8M4Aj62gU1JqOc')
 TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '8624250308')
@@ -23,8 +21,8 @@ logger = logging.getLogger(__name__)
 def send_telegram_message(message):
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-        response = requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": message}, timeout=10)
-        return response.status_code == 200
+        response = requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": message})
+        return True
     except:
         return False
 
@@ -35,40 +33,38 @@ def check_availability():
         chrome_options.add_argument("--headless=new")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
-        chrome_options.add_argument("--page-load-strategy=eager")
+        chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        chrome_options.add_experimental_option('useAutomationExtension', False)
         
         service = Service("/usr/local/bin/chromedriver")
         driver = webdriver.Chrome(service=service, options=chrome_options)
-        driver.set_page_load_timeout(60)
+        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         
-        logger.info(f"🌐 فتح الموقع")
+        driver.set_page_load_timeout(90)
         driver.get(TARGET_URL)
+        time.sleep(5)
         
-        # انتظار حقل الولاية
-        wilaya_input = WebDriverWait(driver, 40).until(
-            EC.presence_of_element_located((By.ID, "reg-wilaya"))
+        wilaya_input = WebDriverWait(driver, 30).until(
+            EC.element_to_be_clickable((By.ID, "reg-wilaya"))
         )
         
-        # الضغط لفتح القائمة
+        driver.execute_script("arguments[0].scrollIntoView(true);", wilaya_input)
+        time.sleep(1)
         driver.execute_script("arguments[0].click();", wilaya_input)
-        time.sleep(3)
+        time.sleep(2)
         
-        # استخراج الخيارات من القائمة
         items = driver.find_elements(By.CSS_SELECTOR, "li[role='option']")
         
-        available_wilayas = []
+        available = []
         for item in items:
-            text = item.text.strip()
-            for keyword in AVAILABILITY_KEYWORDS:
-                if keyword in text :
-                    available_wilayas.append(text)
-                    break
+            text = item.text
+            if any(k in text for k in AVAILABILITY_KEYWORDS) :
+                available.append(text)
         
-        if available_wilayas:
-            message = "✅ المواعيد المتاحة:\n" + "\n".join(available_wilayas)
-            send_telegram_message(message)
+        if available:
+            send_telegram_message("✅ المواعيد المتاحة:\n" + "\n".join(available))
             return True
-        
         return False
         
     except Exception as e:
