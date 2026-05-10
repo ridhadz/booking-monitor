@@ -1,35 +1,36 @@
-name: VPN Booking Monitor
+name: مراقبة مواعيد الحجز
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # كل ساعة
+    - cron: '*/30 * * * *'
   workflow_dispatch:
 
 jobs:
   monitor:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: تثبيت Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      
-      - name: الاتصال بشبكة ZeroTier VPN
-        uses: zerotier/github-action@v1
-        with:
-          network-id: ${{ secrets.ZEROTIER_NETWORK_ID }}
-          auth-token: ${{ secrets.ZEROTIER_TOKEN }}
-      
-      - name: انتظار اتصال VPN
-        run: sleep 15
-      
-      - name: تثبيت المتطلبات
-        run: pip install -r requirements.txt
-      
-      - name: تشغيل السكربت
-        env:
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python monitor.py
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: تثبيت Chrome
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y chromium-browser
+    
+    - name: تثبيت Cloudflared
+      run: |
+        curl -L --output cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+        chmod +x cloudflared
+        sudo mv cloudflared /usr/local/bin/
+        cloudflared --version
+    
+    - name: تثبيت المتطلبات
+      run: pip install -r requirements.txt
+    
+    - name: تشغيل السكربت
+      env:
+        TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: python monitor.py
